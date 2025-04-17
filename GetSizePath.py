@@ -11,10 +11,10 @@ from time import perf_counter
 from rich import print as rpn
 #------------------------------------------
 __author__ = 't.me/dokin_sergey'
-__version__ = '0.0.-3'
-__verdate__ = '2025-04-17 13:59'
-SourcePath = r'C:\Dev'
-semaphore = asyncio.Semaphore(500)
+__version__ = '0.0.1'
+__verdate__ = '2025-04-17 22:07'
+SourcePath = 'F:\\'
+semaphore = asyncio.Semaphore(5000)
 WaitPrBar = True#ProgressBar Stop
 kGb = 1048576
 ###############################################################################################################
@@ -30,6 +30,7 @@ async def ProgressBar()-> None:
             # if   not i % Step:rpn(f'{int(i*Delay):0>3d}',end = '')
             if not i % 2:rpn('[green1]+',end = '')
             else:rpn('[green1]-',end = '')
+            if not i % 60:rpn(f'[cyan1] {i:4}')
             await asyncio.sleep(Delay)
     finally:
         stop_PrBr = perf_counter()
@@ -37,30 +38,69 @@ async def ProgressBar()-> None:
         rpn(']', f'{slep_time}')
 ##############################################################################################################
 ##############################################################################################################
-################################################################################################################
-async def ParsingPath(CurPath:str)->tuple[str, int, int]:
+async def ParsingPath_B(CurPath:str)->tuple[str, int, int]:
     cursize = 0
     counfile = 0
-    # rpn(f'1: {CurPath = }')
-    CurListPath = [CurPath]
-    await asyncio.sleep(0.01)
     try:
         async with semaphore:
-            while CurListPath:
-                nextpaths = []
-                for ipath in CurListPath:
-                    with await aos.scandir(ipath) as itPaths:
-                        for item in itPaths:
-                            await asyncio.sleep(0.01)
-                            if item.is_dir():
-                                nextpaths.append(item.path)
-                                continue
-                            if item.is_file():
-                                counfile += 1
-                                cursize += item.stat().st_size
-                #--------------------------------------------------------
-                CurListPath = nextpaths
+            task_sb = []
+            with await aos.scandir(CurPath) as itPaths:
+                for item in itPaths:
+                    await asyncio.sleep(0.01)
+                    if item.is_dir():
+                        task_b = asyncio.create_task(ParsingPath_A(item.path))
+                        task_sb.append(task_b)
+                        await asyncio.sleep(0.01)
+                        continue
+                    if item.is_file():
+                        counfile += 1
+                        cursize += item.stat().st_size
+        #--------------------------------------------------------
+        await asyncio.gather(*task_sb)
+        await asyncio.sleep(0.01)
     #--------------------------------------------------------
+        for task in task_sb:
+            counfile += task.result()[2]
+            cursize += task.result()[1]
+            # DirSize[task.result()[0]]  = task.result()[1]
+    #--------------------------------------------------------
+    except PermissionError:
+        pass
+        # rpn(f'[khaki1]Отказано в доступе {CurPath}')
+    except Exception as _err:
+        rpn(f'[red1]PP:{_err}')
+        rpn(f'[red1]PP:{traceback.format_exc()}')
+    return CurPath,cursize,counfile
+################################################################################################################
+async def ParsingPath_A(CurPath:str)->tuple[str, int, int]:
+    cursize = 0
+    counfile = 0
+    try:
+        async with semaphore:
+            task_sa = []
+            with await aos.scandir(CurPath) as itPaths:
+                for item in itPaths:
+                    await asyncio.sleep(0.01)
+                    if item.is_dir(follow_symlinks=False):
+                        # nextpaths.append(item.path)
+                        task_a = asyncio.create_task(ParsingPath_A(item.path))
+                        task_sa.append(task_a)
+                        await asyncio.sleep(0.01)
+                        continue
+                    if item.is_file(follow_symlinks=False):
+                        counfile += 1
+                        cursize += item.stat().st_size
+        #--------------------------------------------------------
+        await asyncio.gather(*task_sa)
+        await asyncio.sleep(0.1)
+    #--------------------------------------------------------
+        for task in task_sa:
+            counfile += task.result()[2]
+            cursize += task.result()[1]
+    #--------------------------------------------------------
+    except PermissionError:
+        pass
+        # rpn(f'[khaki1]Отказано в доступе {CurPath}')
     except Exception as _err:
         rpn(f'[red1]PP:{_err}')
         rpn(f'[red1]PP:{traceback.format_exc()}')
@@ -70,7 +110,6 @@ async def main()-> None:
     global WaitPrBar
     DirSize:dict[str,int] = {}
     all_size = 0
-    pathlist = []
     CountFiles = 0
     try:
         tasks = []
@@ -81,15 +120,15 @@ async def main()-> None:
         with await aos.scandir(SourcePath) as itPaths:
             for item in itPaths:
                 await asyncio.sleep(0.01)
-                if item.is_dir():
-                    pathlist.append(item.path)
-                    tasks.append(asyncio.create_task(ParsingPath(item.path)))
+                if item.is_dir(follow_symlinks=False):
+                    task = asyncio.create_task(ParsingPath_A(item.path))
+                    await asyncio.sleep(0)
+                    tasks.append(task)
                     continue
-                if item.is_file():
+                if item.is_file(follow_symlinks=False):
                     CountFiles += 1
                     all_size += item.stat().st_size
     #--------------------------------------------------------------------------------------
-        # tasks = [asyncio.create_task(ParsingPath(Item)) for Item in pathlist]
         await asyncio.gather(*tasks)
         await asyncio.sleep(0.01)
         # #--------------------------------------------------------------------------------
@@ -112,17 +151,7 @@ async def main()-> None:
         FileListTime = round(stop_Src - start_Src,3)
         rpn(f'Составление списка файлов заняло {FileListTime}c')
     #--------------------------------------------------------------------------------------
-        # rpn(f'Запись протокола в {LogUsrFile}')
-        # WaitPrBar = True
-        # PrBar = asyncio.create_task(ProgressBar())
-        # LogLines:list[str] = []
-        # for Ctsk in copytasks:
-            # LogLines += Ctsk.result()
-        # if MessList:#Записываем  хвост протокола
-            # await Loglines()
-        # WaitPrBar = False
-        # await PrBar
-        # if not PrBar.done():PrBar.get_coro().close()
+
         #-----------------------------------------------------------------------------
         # await asyncio.create_task(LogMessage(f'Копирование завершено. Скопировано {len(FileList)} файлов. Время копирования {copy_time} c'))
         # await asyncio.sleep(0.1)
