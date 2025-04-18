@@ -11,9 +11,9 @@ from time import perf_counter
 from rich import print as rpn
 #------------------------------------------
 __author__ = 't.me/dokin_sergey'
-__version__ = '0.0.1'
-__verdate__ = '2025-04-17 22:07'
-SourcePath = 'F:\\'
+__version__ = '0.0.3'
+__verdate__ = '2025-04-18 08:54'
+SourcePath = 'C:\\'
 semaphore = asyncio.Semaphore(5000)
 WaitPrBar = True#ProgressBar Stop
 kGb = 1048576
@@ -23,60 +23,30 @@ async def ProgressBar()-> None:
     Delay = 1
     # Step = 10
     start_PrBr = perf_counter()
-    rpn('[',end = '')
+    # rpn('[',end = '')
     try:
         while WaitPrBar:
-            i += 1
-            # if   not i % Step:rpn(f'{int(i*Delay):0>3d}',end = '')
-            if not i % 2:rpn('[green1]+',end = '')
-            else:rpn('[green1]-',end = '')
-            if not i % 60:rpn(f'[cyan1] {i:4}')
             await asyncio.sleep(Delay)
+            # if   not i % Step:rpn(f'{int(i*Delay):0>3d}',end = '')
+            if not i:rpn('[',end = '')
+            elif not i % 60:rpn(f'[cyan1] {i:4}')
+            elif not i % 2:rpn('[green1]+',end = '')
+            else:rpn('[green1]-',end = '')
+            i += 1
     finally:
         stop_PrBr = perf_counter()
         slep_time = round(stop_PrBr - start_PrBr,3)
-        rpn(']', f'{slep_time}')
+        rpn(']')
+        rpn(f'Задержка по таймеру {slep_time}')
 ##############################################################################################################
-##############################################################################################################
-async def ParsingPath_B(CurPath:str)->tuple[str, int, int]:
-    cursize = 0
-    counfile = 0
-    try:
-        async with semaphore:
-            task_sb = []
-            with await aos.scandir(CurPath) as itPaths:
-                for item in itPaths:
-                    await asyncio.sleep(0.01)
-                    if item.is_dir():
-                        task_b = asyncio.create_task(ParsingPath_A(item.path))
-                        task_sb.append(task_b)
-                        await asyncio.sleep(0.01)
-                        continue
-                    if item.is_file():
-                        counfile += 1
-                        cursize += item.stat().st_size
-        #--------------------------------------------------------
-        await asyncio.gather(*task_sb)
-        await asyncio.sleep(0.01)
-    #--------------------------------------------------------
-        for task in task_sb:
-            counfile += task.result()[2]
-            cursize += task.result()[1]
-            # DirSize[task.result()[0]]  = task.result()[1]
-    #--------------------------------------------------------
-    except PermissionError:
-        pass
-        # rpn(f'[khaki1]Отказано в доступе {CurPath}')
-    except Exception as _err:
-        rpn(f'[red1]PP:{_err}')
-        rpn(f'[red1]PP:{traceback.format_exc()}')
-    return CurPath,cursize,counfile
+
 ################################################################################################################
 async def ParsingPath_A(CurPath:str)->tuple[str, int, int]:
     cursize = 0
     counfile = 0
     try:
         async with semaphore:
+            # rpn(f'[cyan1]{CurPath}')
             task_sa = []
             with await aos.scandir(CurPath) as itPaths:
                 for item in itPaths:
@@ -101,6 +71,7 @@ async def ParsingPath_A(CurPath:str)->tuple[str, int, int]:
     except PermissionError:
         pass
         # rpn(f'[khaki1]Отказано в доступе {CurPath}')
+        # rpn(f'[khaki1]{CurPath}')
     except Exception as _err:
         rpn(f'[red1]PP:{_err}')
         rpn(f'[red1]PP:{traceback.format_exc()}')
@@ -113,7 +84,7 @@ async def main()-> None:
     CountFiles = 0
     try:
         tasks = []
-        rpn('Подготовка списка файлов')
+        rpn(f'Расчет объёма диреторий для {SourcePath}')
         start_Src = perf_counter()
         WaitPrBar = True
         tsc = asyncio.create_task(ProgressBar(),name='ProgressBar')
