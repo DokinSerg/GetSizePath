@@ -11,10 +11,10 @@ from time import perf_counter
 from rich import print as rpn
 #------------------------------------------
 __author__ = 't.me/dokin_sergey'
-__version__ = '0.0.3'
-__verdate__ = '2025-04-18 08:54'
-SourcePath = 'C:\\'
-semaphore = asyncio.Semaphore(5000)
+__version__ = '0.0.4'
+__verdate__ = '2025-04-18 12:04'
+SourcePath = 'C:\\Users'
+semaphore = asyncio.Semaphore(7000)
 WaitPrBar = True#ProgressBar Stop
 kGb = 1048576
 ###############################################################################################################
@@ -50,7 +50,7 @@ async def ParsingPath_A(CurPath:str)->tuple[str, int, int]:
             task_sa = []
             with await aos.scandir(CurPath) as itPaths:
                 for item in itPaths:
-                    await asyncio.sleep(0.01)
+                    await asyncio.sleep(0)
                     if item.is_dir(follow_symlinks=False):
                         # nextpaths.append(item.path)
                         task_a = asyncio.create_task(ParsingPath_A(item.path))
@@ -62,14 +62,14 @@ async def ParsingPath_A(CurPath:str)->tuple[str, int, int]:
                         cursize += item.stat().st_size
         #--------------------------------------------------------
         await asyncio.gather(*task_sa)
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0)
     #--------------------------------------------------------
         for task in task_sa:
             counfile += task.result()[2]
             cursize += task.result()[1]
     #--------------------------------------------------------
     except PermissionError:
-        pass
+        await asyncio.sleep(0)
         # rpn(f'[khaki1]Отказано в доступе {CurPath}')
         # rpn(f'[khaki1]{CurPath}')
     except Exception as _err:
@@ -115,9 +115,11 @@ async def main()-> None:
     #--------------------------------------------------------------------------------------
         sizekb = round(all_size/kGb,3)
         rpn()
-        for i,j in DirSize.items():
-            rpn(f'[turquoise2]{i:40} [green1]{round(j/kGb,3):10}')
-        rpn(f'[turquoise2]Всего файлов [green1]{CountFiles} [turquoise2]общим размером [green1]{all_size} [turquoise2]байт ([green1]{sizekb} Mb)\n')
+        sortDirSize = dict(sorted(DirSize.items(),key=lambda itm: itm[1],reverse=True))
+        for i,j in sortDirSize.items():
+            fsn = f'{i[:40]}[khaki1]~' if len(i) > 40 else i
+            rpn(f'[cyan1]{fsn:41} [green1]{j/kGb:10_.3f}')
+        rpn(f'\n[cyan1]Всего файлов [khaki1]{CountFiles:_} [cyan1]общим размером [khaki1]{all_size:_} [cyan1]байт ([khaki1]{sizekb:_} Mb)\n')
         stop_Src = perf_counter()
         FileListTime = round(stop_Src - start_Src,3)
         rpn(f'Составление списка файлов заняло {FileListTime}c')
