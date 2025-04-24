@@ -11,8 +11,8 @@ from time import perf_counter
 from rich import print as rpn
 #------------------------------------------
 __author__ = 't.me/dokin_sergey'
-__version__ = '0.0.5'
-__verdate__ = '2025-04-23 19:57'
+__version__ = '0.0.6'
+__verdate__ = '2025-04-24 20:03'
 # SourcePath = r'c:\Users\dokin\AppData\Local\Yandex\YandexBrowser\User Data\Default'
 semaphore = asyncio.Semaphore(7000)
 WaitPrBar = True#ProgressBar Stop
@@ -37,8 +37,8 @@ async def ProgressBar()-> None:
     finally:
         stop_PrBr = perf_counter()
         slep_time = round(stop_PrBr - start_PrBr,3)
-        rpn(']')
-        rpn(f'Задержка по таймеру {slep_time}')
+        rpn(f'] по таймеру {slep_time}')
+        # rpn(f'Задержка по таймеру {slep_time}')
 ##############################################################################################################
 
 ################################################################################################################
@@ -85,7 +85,7 @@ async def main(SourcePath:str)-> None:
         DirSize:dict[str,int] = {}
         all_size = 0
         CountFiles = 0
-        start_Src = perf_counter()
+        # start_Src = perf_counter()
         try:
             tasks = []
             rpn(f'Расчет объёма диреторий для {SourcePath}')
@@ -126,28 +126,34 @@ async def main(SourcePath:str)-> None:
         rpn(f'[green1]{SourcePath}\n')
         sortDirSize = dict(sorted(DirSize.items(),key=lambda itm: itm[1],reverse=True))
         Strlen = 30
-        for i,j in enumerate(sortDirSize.items()):
+        for i,j in enumerate(sortDirSize.items(),start = 1):
             ipath = os.path.basename(j[0])
             fsn = f'{ipath[:Strlen]} [khaki1]~' if len(ipath) > Strlen else ipath
             rpn(f'[green1]{i:3} [cyan1]{fsn:32} [green1]{j[1]/kGb:12_.3f}')
         rpn(f'\n[cyan1]Всего файлов [khaki1]{CountFiles:_} [cyan1]общим размером [khaki1]{all_size:_} [cyan1]байт ([khaki1]{sizekb:_} Mb)\n')
-        stop_Src = perf_counter()
-        FileListTime = round(stop_Src - start_Src,3)
-        rpn(f'Составление списка файлов заняло {FileListTime}c')
+        # stop_Src = perf_counter()
+        # FileListTime = round(stop_Src - start_Src,3)
+        # rpn(f'Составление списка файлов заняло {FileListTime}c')
+        rpn()
         #--------------------------------------------------------------------------------------
         while True:
-            if not (kye := input('Номер папки? ')):return
-            if kye.isdigit() and int(kye) < len(sortDirSize):
-                curDir = list(enumerate(sortDirSize))[int(kye)][1]
+            rpn('[cyan1]Введите номер папки. "0" возврат на уровень ввех')
+            if not (kye := input('ENTER выход:-)> ')):return
+            if kye =='0':
+                SourcePath = os.path.dirname(SourcePath)
+                break
+            if kye.isdigit() and int(kye) <= len(sortDirSize):
+                curDir = list(enumerate(sortDirSize))[int(kye)-1][1]
                 SourcePath = os.path.join(SourcePath,curDir)
                 rpn(SourcePath)
                 break
-        rpn('#'*100)
+        rpn('-'*100)
     #-------------------------------------------------------------------------------------
 ###############################################################################################################
 start_time = perf_counter()
 StartPath = 'C:\\'
-if not (key := input(f'Введите букву диска [{StartPath}] :-)>')):
+rpn(f'[cyan1]Введите букву диска или [ [green1]{StartPath} [cyan1]]')
+if not (key := input(' :-)> ')):
     key = StartPath
 if key =='0':os._exit(0)
 dr,_ = os.path.splitdrive(key)
