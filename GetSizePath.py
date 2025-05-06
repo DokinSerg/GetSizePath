@@ -11,12 +11,13 @@ from time import perf_counter
 from rich import print as rpn
 #------------------------------------------
 __author__ = 't.me/dokin_sergey'
-__version__ = '0.0.8'
-__verdate__ = '2025-05-06 16:53'
+__version__ = '0.0.9'
+__verdate__ = '2025-05-06 18:22'
 # SourcePath = r'c:\Users\dokin\AppData\Local\Yandex\YandexBrowser\User Data\Default'
 semaphore = asyncio.Semaphore(7000)
 WaitPrBar = True#ProgressBar Stop
-kGb = 1048576
+# kGb = 1048576
+kGb = 1024000
 FileMaxSize:int = kGb
 ###############################################################################################################
 async def progress_bar()-> None:
@@ -29,7 +30,9 @@ async def progress_bar()-> None:
         while WaitPrBar:
             await asyncio.sleep(Delay)
             # if   not i % Step:rpn(f'{int(i*Delay):0>3d}',end = '')
-            if not i:rpn('[',end = '')
+            if not i:
+                rpn('[',end = '')
+                i += 1
             elif not i % 60:rpn(f'[cyan1] {i:4}')
             elif not i % 2:rpn('[green1]+',end = '')
             else:rpn('[green1]-',end = '')
@@ -96,7 +99,9 @@ async def main(source_path:str)->None:
     #-----------------------------------------------------------------------------
     while True:
         DirSize:dict[str,int] = {}
+        Filedict:dict[str,int] = {}
         DirFile:dict[str,dict[str,int]] = {}
+        DirFile['root'] = {}
         all_size = 0
         CountFiles = 0
         # start_Src = perf_counter()
@@ -115,6 +120,9 @@ async def main(source_path:str)->None:
                         continue
                     if item.is_file(follow_symlinks=False):
                         CountFiles += 1
+                        if (filesize := item.stat().st_size) > FileMaxSize:
+                            Filedict[item.name] = filesize
+                            DirFile['root'].update(Filedict)
                         all_size += item.stat().st_size
         #--------------------------------------------------------------------------------------
             await asyncio.gather(*tasks)
@@ -123,8 +131,9 @@ async def main(source_path:str)->None:
             for task in tasks:
                 CountFiles += task.result()[2]
                 all_size += task.result()[1]
-                DirSize[task.result()[0]]  = task.result()[1]
-                DirFile[task.result()[0]]  = task.result()[3]
+                DirSize[task.result()[0]] = task.result()[1]
+                DirFile[task.result()[0]] = task.result()[3]
+                # DirFile[task.result()[0]].update(task.result()[3])
         #--------------------------------------------------------------------------------------
             WaitPrBar = False
             await tsc
@@ -138,10 +147,18 @@ async def main(source_path:str)->None:
         #------------------------------------------------------------------------------------------
         sizekb = round(all_size/kGb,3)
         rpn()
-        rpn(f'[green1]{source_path}\n')
+        # rpn(f'[green1]{source_path}\n')
         sortDirSize = dict(sorted(DirSize.items(),key=lambda itm: itm[1],reverse=True))
         Strlen = 30
-        ##----------------------------------------------------------------------------------------
+    ##----------------------------------------------------------------------------------------
+        if DirFile['root']:
+            rpn(f'[green1]  0 [cyan1]{source_path:29} [green1]{all_size:12_.3f}')
+            if len(DirFile['root']) < 100:
+                for fn,fs in DirFile['root'].items():
+                    rpn(f'\t[khaki1] {fn:42} [cyan1] {fs/kGb:12_.3f}')
+            else:
+                rpn('\t[khaki1]Много файлов')
+    ##---------------------------------------------------------------------------------------------
         for i,j in enumerate(sortDirSize.items(),start = 1):
             ipath = os.path.basename(j[0])
             fsn = f'{ipath[:Strlen]} [khaki1]~' if len(ipath) > Strlen else ipath
