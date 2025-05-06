@@ -11,8 +11,8 @@ from time import perf_counter
 from rich import print as rpn
 #------------------------------------------
 __author__ = 't.me/dokin_sergey'
-__version__ = '0.0.9'
-__verdate__ = '2025-05-06 18:22'
+__version__ = '0.0.10'
+__verdate__ = '2025-05-06 22:46'
 # SourcePath = r'c:\Users\dokin\AppData\Local\Yandex\YandexBrowser\User Data\Default'
 semaphore = asyncio.Semaphore(7000)
 WaitPrBar = True#ProgressBar Stop
@@ -192,15 +192,17 @@ async def main(source_path:str)->None:
 start_time = perf_counter()
 StartPath = 'C:\\'
 rpn(f'[cyan1]Введите букву диска или [ [green1]{StartPath} [cyan1]]')
-if not (key := input(' :-)> ')):
-    key = StartPath
-if key =='0':os._exit(0)
-dr,_ = os.path.splitdrive(key)
-if not dr: key = f'{key}:\\'
-elif dr == StartPath:key = f'{key}\\'
+while (key := input(' :-)> ')):
+    if key =='0':os._exit(0)
+    dr,_ = os.path.splitdrive(key)
+    StartPath = f'{key}:' if not dr and len(key) == 1 else key
+    ##------------------------------------------------
+    if os.path.isdir(StartPath):break
+    rpn(f'[cyan1]Путь [cyan1]{StartPath} [cyan1]не найден. Повторите ввод.')
+
 ##-------------------------------------------------------------------------
 InputMaxFile()
-asyncio.run(main(key))
+asyncio.run(main(StartPath))
 ##-------------------------------------------------------------------------
 input(':-> ')
 os._exit(0)
