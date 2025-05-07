@@ -65,7 +65,7 @@ async def parsing_path(curpath:str)->tuple[str, int, int,dict[str,int]]:
             with await aos.scandir(curpath) as itPaths:
                 for item in itPaths:
                     await asyncio.sleep(0)
-                    if item.is_dir(follow_symlinks=False):
+                    if item.is_dir(follow_symlinks=False) and not item.is_junction():
                         # nextpaths.append(item.path)
                         task_a = asyncio.create_task(parsing_path(item.path))
                         task_sa.append(task_a)
@@ -191,7 +191,9 @@ async def main(source_path:str)->None:
 ###############################################################################################################
 start_time = perf_counter()
 StartPath = 'C:\\'
-rpn(f'[cyan1]Введите букву диска или [ [green1]{StartPath} [cyan1]]')
+rpn('[cyan1]* Программа определения размера папок и "больших" файлов *')
+rpn(f'[cyan1]Версия [green1]{__version__}[cyan1] от [green1]{__verdate__}[cyan1] автор [green1]{__author__}')
+rpn(f'[cyan1]Введите "начальный путь" или букву диска. [[green1]{StartPath}[cyan1]] ', end = '')
 while (key := input(' :-)> ')):
     if key =='0':os._exit(0)
     dr,_ = os.path.splitdrive(key)
@@ -199,7 +201,6 @@ while (key := input(' :-)> ')):
     ##------------------------------------------------
     if os.path.isdir(StartPath):break
     rpn(f'[cyan1]Путь [cyan1]{StartPath} [cyan1]не найден. Повторите ввод.')
-
 ##-------------------------------------------------------------------------
 InputMaxFile()
 asyncio.run(main(StartPath))
