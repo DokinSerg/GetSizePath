@@ -11,14 +11,15 @@ from time import perf_counter
 from rich import print as rpn
 #------------------------------------------
 __author__ = 't.me/dokin_sergey'
-__version__ = '0.0.11'
-__verdate__ = '2025-05-07 15:19'
+__version__ = '0.1.1'
+__verdate__ = '2025-05-08 13:03'
 # SourcePath = r'c:\Users\dokin\AppData\Local\Yandex\YandexBrowser\User Data\Default'
 semaphore = asyncio.Semaphore(7000)
 WaitPrBar = True#ProgressBar Stop
 # kGb = 1048576
-kGb = 1024000
+kGb:int = 1024000
 FileMaxSize:int = kGb
+PathMinSize:int = 0
 ###############################################################################################################
 async def progress_bar()-> None:
     i=0
@@ -43,12 +44,24 @@ async def progress_bar()-> None:
         rpn(f'] по таймеру {slep_time}')
         # rpn(f'Задержка по таймеру {slep_time}')
 ##############################################################################################################
+def InputMinPath()->int:
+    PMS = 0
+    rpn('\n\t[green1]Папки [cyan1]какого размера выводить на экран?')
+    rpn('\t[khaki1]ENTER [cyan1]Любого размера')
+    for nn in range(1,6):
+        rpn(f'\t\t[green1]{nn} [cyan1]Больше [khaki1]{10**(nn-1):7_} [cyan1]Мб')
+    ##-------------------------------------------------------------------------
+    ky = input('\t :->? ')
+    if ky.isdigit() and int(ky) in range(1,6):
+        PMS = kGb * 10 ** (int(ky) - 1)
+    return PMS
+##############################################################################################################
 def InputMaxFile()->None:
     global FileMaxSize
     # FMS = kGb
-    rpn('\t[cyan1]Файлы какого размера выводить на печать?')
+    rpn('\n\t[green1]Файлы [cyan1]какого размера выводить на экран?')
     for nn in range(1,5):
-        rpn(f'\t\t[green1]{nn} [cyan1]Больще [khaki1]{10**nn:6_} [cyan1]Мб')
+        rpn(f'\t\t[green1]{nn} [cyan1]Больше [khaki1]{10**nn:6_} [cyan1]Мб')
     ##-------------------------------------------------------------------------
     ky = input('\t :->? ')
     if ky.isdigit() and int(ky) in range(1,5):
@@ -108,7 +121,8 @@ async def main(source_path:str)->None:
         # start_Src = perf_counter()
         try:
             tasks = []
-            rpn(f'[cyan1]Расчет объёма директорий для > [green1]{source_path} [cyan1]<')
+            rpn(f'[cyan1]Определение размера вложенных папок для > [green1]{source_path} [cyan1]<')
+            rpn(f'[cyan1]Вывод на экран папок болше [green1]{PathMinSize} [cyan1] фалов больше [green1]{FileMaxSize}')
             WaitPrBar = True
             tsc = asyncio.create_task(progress_bar(),name='ProgressBar')
             with await aos.scandir(source_path) as itPaths:
@@ -149,35 +163,51 @@ async def main(source_path:str)->None:
         #------------------------------------------------------------------------------------------
         sizekb = round(all_size/kGb,3)
         rpn()
-        # rpn(f'[green1]{source_path}\n')
         sortDirSize = dict(sorted(DirSize.items(),key=lambda itm: itm[1][0],reverse=True))
-    ##----------------------------------------------------------------------------------------
-        rpn(f'{' '*10}[magenta1]Имя папки.файла {' '*60}:   Размер Мб :  кол-во')
-        rpn(f'[magenta1]{'-'*109}')
-        if DirFile['root']:
-            rpn(f'[green1]   0 [cyan1]{source_path:74} [green1]{all_size:12_.3f} : {RootCount:7_}')
-            if len(DirFile['root']) < 100:
-                for fn,fs in DirFile['root'].items():
-                    # rpn(f'    [khaki1] {fn:80} [cyan1]:{fs/kGb:12_.3f} :')
-                    nff = '     ' + fn + ' ' * (81 - len(fn)) + ':'
-                    print(nff,end = '')
-                    rpn(f'[khaki1]{fs/kGb:12_.3f} :')
-            else:
-                rpn('\t[khaki1]Много файлов')
-    ##---------------------------------------------------------------------------------------------
-        for i,j in enumerate(sortDirSize.items(),start = 1):
-            ipath = os.path.basename(j[0])
-            fsn = f'{ipath[:80]} [khaki1]~' if len(ipath) > 80 else ipath
-            rpn(f'[green1]{i:4} [cyan1]{fsn:81}:[green1]{j[1][0]/kGb:12_.3f} : {j[1][1]:7_}')
-            if len(DirFile[j[0]]) >100:
-                rpn('\t[khaki1]Много файлов')
-                continue
-            for fn,fs in DirFile[j[0]].items():
-                base, ext = os.path.splitext(fn)
-                ffn = f'{base[:74]}~{ext}' if len(base) > 74 else fn
-                nff = '     ' + ffn + ' ' * (81 - len(ffn)) + ':'
-                print(nff,end = '')
-                rpn(f'[khaki1]{fs/kGb:12_.3f} :')
+        ##------------------------------------------------------------------------------------------------
+        try:
+            maxlenpath = len(os.path.basename(max(sortDirSize.keys(), key=len)))
+            maxlenfile = 0
+            if (listFile := [len(ifm) for _,ifd in DirFile.items() for ifm,_ in ifd.items()]):
+                maxlenfile = max(listFile)
+            ## maxlenfile = max(len(ifm) for _,ifd in DirFile.items() for ifm,_ in ifd.items())
+            fls = max(maxlenpath,maxlenfile)
+            mls = fls + 3 if fls < 75 else 80
+            fls = mls - 5
+        ##----------------------------------------------------------------------------------------
+            rpn(f'{' '*10}[magenta1]Имя папки.файла {' '*(mls-21)}:   Размер Мб :  кол-во')
+            rpn(f'[magenta1]{'-' * (mls + 30)}')
+            if DirFile['root']:
+                rpn(f'[green1]   0 [cyan1]{source_path + ' ' * (mls - len(source_path))}:[green1]{sizekb:12_.3f} : {RootCount:7_}')
+                if len(DirFile['root']) < 100:
+                    for fn,fs in DirFile['root'].items():
+                        # rpn(f'    [khaki1] {fn:80} [cyan1]:{fs/kGb:12_.3f} :')
+                        nff = '     ' + fn + ' ' * (mls - len(fn)) + ':'
+                        print(nff,end = '')
+                        rpn(f'[khaki1]{fs/kGb:12_.3f} :')
+                else:
+                    rpn('\t[khaki1]Много файлов')
+        ##---------------------------------------------------------------------------------------------
+            for i,j in enumerate(sortDirSize.items(),start = 1):
+                if j[1][0] >= PathMinSize:
+                    ipath = os.path.basename(j[0])
+                    fss = f'{ipath[:mls]} [khaki1]~' if len(ipath) > mls else ipath
+                    fsn = fss + ' ' * (mls - len(fss))
+                    rpn(f'[green1]{i:4} [cyan1]{fsn}:[green1]{j[1][0]/kGb:12_.3f} : {j[1][1]:7_}')
+                    if len(DirFile[j[0]]) >100:
+                        rpn('\t[khaki1]Много файлов')
+                        continue
+                    for fn,fs in DirFile[j[0]].items():
+                        base, ext = os.path.splitext(fn)
+                        ffn = f'{base[:fls]}~{ext}' if len(base) > fls else fn
+                        nff = '     ' + ffn + ' ' * (mls - len(ffn)) + ':'
+                        print(nff,end = '')
+                        rpn(f'[khaki1]{fs/kGb:12_.3f} :')
+        except Exception as _err:
+            rpn(f'[red1]RF:{_err}')
+            rpn(f'[red1]RF:{traceback.format_exc()}')
+            rpn(f'[red1]RF:{maxlenpath = } { maxlenfile =} {fls =} {mls = } {PathMinSize = }')
+        rpn(f'[magenta1]{'-' * (mls + 30)}')
         rpn(f'\n[cyan1]Всего файлов [khaki1]{CountFiles:_} [cyan1]общим размером [khaki1]{all_size:_} [cyan1]байт ([khaki1]{sizekb:_} Mb)\n')
         # stop_Src = perf_counter()
         # FileListTime = round(stop_Src - start_Src,3)
@@ -201,19 +231,26 @@ async def main(source_path:str)->None:
 ###############################################################################################################
 start_time = perf_counter()
 StartPath = 'C:\\'
-rpn('[cyan1]* Программа определения размера папок и "больших" файлов *')
+rpn('[cyan1]* Программа определения размера папок и поиска "больших" файлов *')
 rpn(f'[cyan1]Версия [green1]{__version__}[cyan1] от [green1]{__verdate__}[cyan1] автор [green1]{__author__}')
-rpn(f'[cyan1]Введите "начальный путь" или букву диска. [ [green1]{StartPath} [cyan1]]', end = '')
-while (key := input(' :-)> ')):
-    if key =='0':os._exit(0)
-    dr,_ = os.path.splitdrive(key)
-    StartPath = f'{key}:' if not dr and len(key) == 1 else key
-    ##------------------------------------------------
-    if os.path.isdir(StartPath):break
-    rpn(f'[cyan1]Путь [cyan1]{StartPath} [cyan1]не найден. Повторите ввод.')
-##-------------------------------------------------------------------------
-InputMaxFile()
-asyncio.run(main(StartPath))
-##-------------------------------------------------------------------------
-input(':-> ')
+##--------------------------------------------------------------------------------------------------------------
+while True:
+    rpn(f'[magenta1]{'-' * 70}')
+    rpn(f'[cyan1]Введите "начальный путь" или букву диска. [ [green1]{StartPath} [cyan1]]', end = '')
+    if (key := input(' :-)> ')) == '0':break
+    ## Выесняем ввели 1 букву или путь/UNC
+    if key:
+        dr,_ = os.path.splitdrive(key)
+        StartPath = f'{key}:\\' if not dr and len(key) == 1 else key
+    ##---------------------------------------------------------------------------
+    ## Ошиблись или нет доступа к папке
+    if not os.path.isdir(StartPath):
+        rpn(f'[cyan1]Путь [cyan1]{StartPath} [cyan1]не найден. Повторите ввод.')
+        continue
+##--------------------------------------------------------------------------------
+    PathMinSize = InputMinPath()
+    InputMaxFile()
+    asyncio.run(main(StartPath))
+##--------------------------------------------------------------------------------
+#input(':-> ')
 os._exit(0)
