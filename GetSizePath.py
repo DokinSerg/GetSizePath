@@ -122,7 +122,7 @@ async def main(source_path:str)->None:
         try:
             tasks = []
             rpn(f'[cyan1]Определение размера вложенных папок для > [green1]{source_path} [cyan1]<')
-            rpn(f'[cyan1]Вывод на экран папок болше [green1]{PathMinSize} [cyan1] фалов больше [green1]{FileMaxSize}')
+            rpn(f'[cyan1]Вывод на экран папок больше [green1]{PathMinSize//kGb}Mb [cyan1] файлов больше [green1]{FileMaxSize//kGb}Mb')
             WaitPrBar = True
             tsc = asyncio.create_task(progress_bar(),name='ProgressBar')
             with await aos.scandir(source_path) as itPaths:
@@ -215,9 +215,11 @@ async def main(source_path:str)->None:
         rpn()
         #--------------------------------------------------------------------------------------
         while True:
-            rpn('[cyan1]Введите номер папки. "0" возврат на уровень ввех')
-            if not (kye := input('ENTER выход:-)> ')):return
-            if kye =='0':
+            rpn('[cyan1]Введите номер папки,[orchid]0 [cyan1]выход') 
+            rpn('[cyan1]>[green1]?/,[cyan1]< возврат на уровень ввех')
+            if (kye := input('ENTER повтор:-)> ')) == '0':return
+            if not kye:break
+            if kye.strip() in ('?','/',',','.'):
                 source_path = os.path.dirname(source_path)
                 break
             if kye.isdigit() and int(kye) <= len(sortDirSize):
@@ -242,6 +244,7 @@ while True:
     if key:
         dr,_ = os.path.splitdrive(key)
         StartPath = f'{key}:\\' if not dr and len(key) == 1 else key
+        if StartPath[-1] == ':':StartPath += '\\'
     ##---------------------------------------------------------------------------
     ## Ошиблись или нет доступа к папке
     if not os.path.isdir(StartPath):
