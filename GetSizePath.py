@@ -1,18 +1,15 @@
 import os
-# import sys
-# import uuid
 import traceback
 import asyncio
-# import aiofiles
+from time import perf_counter
 import aiofiles.os as aos
 # from datetime import datetime,timezone,timedelta
-from time import perf_counter
 # from aioshutil import copy2 as Acopy2
 from rich import print as rpn
 #------------------------------------------
 __author__ = 't.me/dokin_sergey'
-__version__ = '0.1.1'
-__verdate__ = '2025-05-08 13:03'
+__version__ = '0.1.2'
+__verdate__ = '2025-05-14 13:08'
 # SourcePath = r'c:\Users\dokin\AppData\Local\Yandex\YandexBrowser\User Data\Default'
 semaphore = asyncio.Semaphore(7000)
 WaitPrBar = True#ProgressBar Stop
@@ -34,14 +31,14 @@ async def progress_bar()-> None:
             if not i:
                 rpn('[',end = '')
                 i += 1
-            elif not i % 60:rpn(f'[cyan1] {i:4}')
+            elif not i % 60:rpn(f'[cyan1] {i//60:2} мин.')
             elif not i % 2:rpn('[green1]+',end = '')
             else:rpn('[green1]-',end = '')
             i += 1
     finally:
         stop_PrBr = perf_counter()
         slep_time = round(stop_PrBr - start_PrBr,3)
-        rpn(f'] по таймеру {slep_time}')
+        rpn(f'] по таймеру {slep_time}сек.')
         # rpn(f'Задержка по таймеру {slep_time}')
 ##############################################################################################################
 def InputMinPath()->int:
@@ -109,7 +106,7 @@ async def parsing_path(curpath:str)->tuple[str, int, int,dict[str,int]]:
 ##############################################################################################################
 async def main(source_path:str)->None:
     global WaitPrBar
-    #-----------------------------------------------------------------------------
+    ##-----------------------------------------------------------------------------
     while True:
         DirSize:dict[str,list[int]] = {}
         Filedict:dict[str,int] = {}
@@ -154,8 +151,11 @@ async def main(source_path:str)->None:
             WaitPrBar = False
             await tsc
             if not tsc.done():
-                tsc.get_coro().close()
-            await asyncio.sleep(0.01)
+                tsc.cancel()
+            # tsk = tsc.get_coro()
+            # rpn(type(tsk),tsk)
+            #    .close()
+            await asyncio.sleep(1)
         #--------------------------------------------------------------------------------------
         except Exception as err:
             rpn(f'[red1]Main:{err}')
@@ -215,7 +215,7 @@ async def main(source_path:str)->None:
         rpn()
         #--------------------------------------------------------------------------------------
         while True:
-            rpn('[cyan1]Введите номер папки,[orchid]0 [cyan1]выход') 
+            rpn('[cyan1]Введите номер папки,[orchid]0 [cyan1]выход')
             rpn('[cyan1]>[green1]?/,[cyan1]< возврат на уровень ввех')
             if (kye := input('ENTER повтор:-)> ')) == '0':return
             if not kye:break
@@ -225,13 +225,13 @@ async def main(source_path:str)->None:
             if kye.isdigit() and int(kye) <= len(sortDirSize):
                 curDir = list(enumerate(sortDirSize))[int(kye)-1][1]
                 source_path = os.path.join(source_path,curDir)
-                rpn(source_path)
+                # rpn(source_path)
+                InputMaxFile()
                 break
         ##-------------------------------------------------------------------------------------
         rpn('-'*100)
-        InputMaxFile()
 ###############################################################################################################
-start_time = perf_counter()
+# start_time = perf_counter()
 StartPath = 'C:\\'
 rpn('[cyan1]* Программа определения размера папок и поиска "больших" файлов *')
 rpn(f'[cyan1]Версия [green1]{__version__}[cyan1] от [green1]{__verdate__}[cyan1] автор [green1]{__author__}')
